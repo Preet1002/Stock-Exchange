@@ -1,5 +1,6 @@
 from uuid import uuid4
 from app.core.database import get_connection
+from app.services.matching_engine import match_order
 
 def place_order(order):
     conn=get_connection()
@@ -13,7 +14,8 @@ def place_order(order):
     conn.commit()
     cursor.close()
     conn.close()
+    match_order(order_id)
     return {
         "order_id": order_id,
-        "status": "open"
+        "status": "submitted"
     }
