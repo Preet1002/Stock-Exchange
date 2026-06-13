@@ -8,3 +8,9 @@ def get_balance(user_id: str):
     cursor.close()
     conn.close()
     return wallet
+
+def debit_wallet(cursor,user_id, amount):
+    cursor.execute("UPDATE wallets SET balance=balance-%s WHERE user_id=%s",(amount, user_id))
+
+def credit_wallet(cursor,user_id, amount):
+    cursor.execute("UPDATE wallets SET balance=balance+%s WHERE user_id=%s",(amount, user_id))

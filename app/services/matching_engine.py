@@ -1,5 +1,9 @@
 from app.core.database import get_connection
+from app.services.wallet_service import debit_wallet, credit_wallet
+from app.services.portfolio_service import add_shares, remove_shares
 from uuid import uuid4
+
+from app.services.wallet_service import debit_wallet
 
 def find_matching_sell(symbol, buy_price,user_id):
     conn=get_connection()
@@ -43,7 +47,10 @@ def execute_trade(buy_order, sell_order):
                    (remaining_buy, 'filled' if remaining_buy==0 else 'open', buy_order["order_id"]))
     cursor.execute("""UPDATE orders SET quantity=%s, status=%s WHERE order_id=%s""",
                    (remaining_sell, 'filled' if remaining_sell==0 else 'open', sell_order["order_id"]))
-                   
+    debit_wallet(cursor, buy_order["user_id"], trade_price*trade_quantity)
+    credit_wallet(cursor, sell_order["user_id"], trade_price*trade_quantity)  
+    add_shares(cursor, buy_order["user_id"], buy_order["symbol"], trade_quantity, trade_price)
+    remove_shares(cursor, sell_order["user_id"], sell_order["symbol"], trade_quantity)   
     conn.commit()
     cursor.close()
     conn.close()
