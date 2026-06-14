@@ -32,3 +32,14 @@ def remove_shares(cursor, user_id, symbol, quantity):
     else:
         cursor.execute("UPDATE portfolio SET quantity=%s WHERE user_id=%s AND symbol=%s",
                            (remaining, user_id, symbol))
+    
+def has_sufficient_shares(user_id, symbol, quantity):
+    conn=get_connection()
+    cursor=conn.cursor(dictionary=True)
+    cursor.execute("SELECT quantity FROM portfolio WHERE user_id=%s AND symbol=%s",(user_id, symbol))
+    stock=cursor.fetchone()
+    cursor.close()
+    conn.close()
+    if stock is None:
+        return False
+    return stock["quantity"]>=quantity

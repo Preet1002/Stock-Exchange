@@ -14,3 +14,7 @@ def debit_wallet(cursor,user_id, amount):
 
 def credit_wallet(cursor,user_id, amount):
     cursor.execute("UPDATE wallets SET balance=balance+%s WHERE user_id=%s",(amount, user_id))
+
+def has_sufficient_balance(user_id, amount):
+    wallet=get_balance(user_id)
+    return wallet and wallet[0]>=amount
