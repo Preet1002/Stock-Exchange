@@ -4,17 +4,19 @@ from app.core.database import get_connection
 from app.services.matching_engine import match_order
 from app.services.wallet_service import has_sufficient_balance
 from app.services.portfolio_service import has_sufficient_shares
+from app.services.wallet_service import release_funds, reserve_funds
 
 def place_order(order):
+    conn=get_connection()
+    cursor=conn.cursor()
     trade_value=order.price*order.quantity
     if order.side=="buy":
         if not has_sufficient_balance(order.user_id, trade_value):
             raise HTTPException(status_code=400, detail="Insufficient balance")
+        reserve_funds(cursor, order.user_id, trade_value)
     if order.side=="sell":
         if not has_sufficient_shares(order.user_id, order.symbol, order.quantity):
             raise HTTPException(status_code=400, detail="Insufficient shares")
-    conn=get_connection()
-    cursor=conn.cursor()
     order_id=str(uuid4())
     cursor.execute("""INSERT INTO orders (
                    order_id, user_id, symbol,side, price,quantity) 
@@ -28,4 +30,27 @@ def place_order(order):
     return {
         "order_id": order_id,
         "status": "submitted"
+    }
+
+def cancel_order(order_id):
+    conn=get_connection()
+    cursor=conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM orders WHERE order_id=%s", (order_id,))
+    order=cursor.fetchone()
+    if order is None:
+        cursor.close()
+        conn.close()
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order["status"]!="open":
+        cursor.close()
+        conn.close()
+        raise HTTPException(status_code=400, detail="Order cannot be cancelled")
+    if order["side"]=="buy":
+        release_funds(cursor, order["user_id"], order["price"]*order["quantity"])
+    cursor.execute("UPDATE orders SET status='cancelled' WHERE order_id=%s", (order_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return {
+        "status": "cancelled"
     }
