@@ -18,3 +18,13 @@ def credit_wallet(cursor,user_id, amount):
 def has_sufficient_balance(user_id, amount):
     wallet=get_balance(user_id)
     return wallet and wallet[0]>=amount
+
+def reserve_funds(cursor, user_id, amount):
+    cursor.execute("UPDATE wallets SET balance=balance-%s, reserved=reserved+%s WHERE user_id=%s",(amount, amount, user_id))
+
+def release_funds(cursor, user_id, amount):
+    cursor.execute("UPDATE wallets SET balance=balance+%s, reserved=reserved-%s WHERE user_id=%s",(amount, amount, user_id))
+
+def settle_trade(cursor, buyer_id, seller_id, amount):
+    cursor.execute("UPDATE wallets SET reserved=reserved-%s WHERE user_id=%s",(amount, buyer_id))
+    cursor.execute("UPDATE wallets SET balance=balance+%s WHERE user_id=%s",(amount, seller_id))
