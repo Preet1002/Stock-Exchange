@@ -54,3 +54,29 @@ def cancel_order(order_id):
     return {
         "status": "cancelled"
     }
+
+def get_order_history(user_id):
+    conn=get_connection()
+    cursor=conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM orders WHERE user_id=%s ORDER BY created_at DESC", (user_id,))
+    orders=cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return orders
+
+def get_trade_history(user_id):
+    conn=get_connection()
+    cursor=conn.cursor(dictionary=True)
+    cursor.execute("""
+                   SELECT t.trade_id,t.symbol,t.price,t.quantity,t.created_at,
+                   CASE WHEN o.user_id=%s THEN 'buy' ELSE 'sell' END AS side
+                   FROM trades t JOIN orders o ON t.buy_order_id=o.order_id
+                   WHERE o.user_id=%s UNION
+                   SELECT t.trade_id,t.symbol,t.price,t.quantity,t.created_at, 'sell'
+                   FROM trades t JOIN orders o ON t.sell_order_id=o.order_id
+                   WHERE o.user_id=%s ORDER BY created_at DESC
+                   """, (user_id, user_id,user_id))
+    trades=cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return trades
