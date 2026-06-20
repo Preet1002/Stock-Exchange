@@ -1,5 +1,5 @@
-from fastapi import APIRouter
-
+from fastapi import APIRouter, Depends
+from app.auth.security import get_current_user
 from app.schemas.order_schema import OrderRequest
 from app.services.order_service import place_order
 from app.services.order_service import cancel_order,get_order_history, get_trade_history
@@ -7,8 +7,8 @@ from app.services.order_service import cancel_order,get_order_history, get_trade
 router=APIRouter(prefix="/orders")
 
 @router.post("/place")
-def create_order(order:OrderRequest):
-    return place_order(order)
+def create_order(order:OrderRequest,current_user: str=Depends(get_current_user)):
+    return place_order(order,current_user)
 
 @router.delete("/cancel/{order_id}")
 def cancel(order_id:str):

@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from uuid import uuid4
 from app.core.database import get_connection
 from app.schemas.user_schema import CreateUserRequest
+from app.auth.security import hash_password
 
 router =APIRouter()
 @router.post("/users")
@@ -18,15 +19,16 @@ def create_user(user: CreateUserRequest):
             detail="Username already exists"
         )
     user_id=str(uuid4())
+    hashed_password=hash_password(user.password)
     cursor.execute(
-        """INSERT INTO users(id,username)
-        VALUES(%s,%s)""",
-        (user_id,user.username)
+        """INSERT INTO users(id,username,password)
+        VALUES(%s,%s,%s)""",
+        (user_id,user.username,hashed_password)
     )
     cursor.execute(
-        """INSERT INTO wallets(user_id,balance)
-        VALUES(%s,%s)""",
-        (user_id,10000.00)
+        """INSERT INTO wallets(user_id,balance,reserved)
+        VALUES(%s,%s,%s)""",
+        (user_id,10000.00,0.00)
     )
     conn.commit()
     cursor.close()

@@ -6,22 +6,22 @@ from app.services.wallet_service import has_sufficient_balance
 from app.services.portfolio_service import has_sufficient_shares
 from app.services.wallet_service import release_funds, reserve_funds
 
-def place_order(order):
+def place_order(order,current_user):
     conn=get_connection()
     cursor=conn.cursor()
     trade_value=order.price*order.quantity
     if order.side=="buy":
-        if not has_sufficient_balance(order.user_id, trade_value):
+        if not has_sufficient_balance(current_user, trade_value):
             raise HTTPException(status_code=400, detail="Insufficient balance")
-        reserve_funds(cursor, order.user_id, trade_value)
+        reserve_funds(cursor, current_user, trade_value)
     if order.side=="sell":
-        if not has_sufficient_shares(order.user_id, order.symbol, order.quantity):
+        if not has_sufficient_shares(current_user, order.symbol, order.quantity):
             raise HTTPException(status_code=400, detail="Insufficient shares")
     order_id=str(uuid4())
     cursor.execute("""INSERT INTO orders (
                    order_id, user_id, symbol,side, price,quantity) 
                    VALUES (%s,%s,%s,%s,%s,%s)""",
-                    (order_id, order.user_id, order.symbol,
+                    (order_id, current_user, order.symbol,
                       order.side, order.price, order.quantity))
     conn.commit()
     cursor.close()
